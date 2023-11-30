@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/guoyk93/nas-tools/model"
 	"github.com/guoyk93/nas-tools/model/dao"
 	"log"
 	"os"
@@ -19,7 +18,7 @@ import (
 )
 
 var (
-	q *dao.Query
+	db *dao.Query
 )
 
 func main() {
@@ -27,10 +26,7 @@ func main() {
 	defer utils.Exit(&err)
 	defer rg.Guard(&err)
 
-	client := rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
-	rg.Must0(client.AutoMigrate(&model.MirroredGitRepo{}))
-
-	q = dao.Use(client)
+	db = dao.Use(rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{})))
 
 	analyzeDir("/volume1/mirrors/Git", "")
 }
@@ -96,12 +92,13 @@ func recordGitDir(dirRoot string, dirRel string) {
 		lastCommitMessage = "unknown"
 	}
 
-	record := rg.Must(q.MirroredGitRepo.Where(
-		q.MirroredGitRepo.Key.Eq(dirRel),
+	// create/update record
+	record := rg.Must(db.MirroredGitRepo.Where(
+		db.MirroredGitRepo.Key.Eq(dirRel),
 	).Assign(
-		q.MirroredGitRepo.LastCommitAt.Value(lastCommitAt),
-		q.MirroredGitRepo.LastCommitBy.Value(lastCommitBy),
-		q.MirroredGitRepo.LastCommitMessage.Value(lastCommitMessage),
+		db.MirroredGitRepo.LastCommitAt.Value(lastCommitAt),
+		db.MirroredGitRepo.LastCommitBy.Value(lastCommitBy),
+		db.MirroredGitRepo.LastCommitMessage.Value(lastCommitMessage),
 	).FirstOrCreate())
 
 	log.Println("recorded:", dirRoot, dirRel, lastCommitAt, lastCommitBy, lastCommitMessage)
@@ -116,10 +113,10 @@ func recordGitDir(dirRoot string, dirRel string) {
 		rg.Must0(cmd.Run())
 
 		// record
-		rg.Must(q.MirroredGitRepo.Where(
-			q.MirroredGitRepo.Key.Eq(dirRel),
+		rg.Must(db.MirroredGitRepo.Where(
+			db.MirroredGitRepo.Key.Eq(dirRel),
 		).UpdateSimple(
-			q.MirroredGitRepo.LastGCAt.Value(now),
+			db.MirroredGitRepo.LastGCAt.Value(now),
 		))
 	}
 
