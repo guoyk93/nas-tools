@@ -168,16 +168,16 @@ func checkYear(fails *[]string, nameYear string) {
 			continue
 		}
 
-		_ = rg.Must(db.ArchivedBundle.Where(
-			db.ArchivedBundle.ID.Eq(nameBundle),
-			db.ArchivedBundle.Year.Eq(nameYear),
-		).FirstOrCreate())
-
 		namesBundle = append(namesBundle, nameBundle)
 	}
 
 	for _, nameBundle := range namesBundle {
 		checkYearEntryDir(fails, nameYear, nameBundle)
+
+		_ = rg.Must(db.ArchivedBundle.Where(
+			db.ArchivedBundle.ID.Eq(nameBundle),
+			db.ArchivedBundle.Year.Eq(nameYear),
+		).FirstOrCreate())
 	}
 }
 
