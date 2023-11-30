@@ -301,7 +301,7 @@ func main() {
 		}
 
 		switch nameYear {
-		case "MAIL", "TAPE", "SUMS":
+		case "MAIL", "TAPE", "SUMS", "CRED":
 			log.Println("skipping " + nameYear)
 		default:
 			if !regexpYear.MatchString(nameYear) {
