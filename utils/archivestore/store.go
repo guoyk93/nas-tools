@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/guoyk93/nas-tools/models"
+	"github.com/guoyk93/nas-tools/model"
 	"hash/crc32"
 	"io"
 	"log"
@@ -79,8 +79,8 @@ func New(client *gorm.DB, year, bundle string) (store *Store, err error) {
 		year:       year,
 		bundle:     bundle,
 	}
-	var items []models.ArchivedFileIgnore
-	if err = client.Where(&models.ArchivedFileIgnore{Year: year, Bundle: bundle}).Find(&items).Error; err != nil {
+	var items []model.ArchivedFileIgnore
+	if err = client.Where(&model.ArchivedFileIgnore{Year: year, Bundle: bundle}).Find(&items).Error; err != nil {
 		return
 	}
 	for _, item := range items {
@@ -100,10 +100,10 @@ func (st *Store) SampleNotChecked() (out []string) {
 }
 
 func (st *Store) CountDB() (out int64, err error) {
-	err = st.client.Where(&models.ArchivedFile{
+	err = st.client.Where(&model.ArchivedFile{
 		Year:   st.year,
 		Bundle: st.bundle,
-	}).Model(&models.ArchivedFile{}).Count(&out).Error
+	}).Model(&model.ArchivedFile{}).Count(&out).Error
 	return
 }
 
@@ -178,9 +178,9 @@ func (st *Store) Check(dirBundle string, name string, sym bool) (err error) {
 }
 
 func (st *Store) Load() (err error) {
-	var records []models.ArchivedFile
+	var records []model.ArchivedFile
 
-	if err = st.client.Where(models.ArchivedFile{
+	if err = st.client.Where(model.ArchivedFile{
 		Year:   st.year,
 		Bundle: st.bundle,
 	}).FindInBatches(
@@ -210,7 +210,7 @@ func (st *Store) Load() (err error) {
 func (st *Store) Save() error {
 	return st.client.Transaction(func(tx *gorm.DB) error {
 		for _, item := range st.items {
-			if err := tx.Create(&models.ArchivedFile{
+			if err := tx.Create(&model.ArchivedFile{
 				ID:      buildID(st.year, st.bundle, item.Name),
 				Year:    st.year,
 				Bundle:  st.bundle,

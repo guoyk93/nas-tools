@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/guoyk93/nas-tools/models"
+	"github.com/guoyk93/nas-tools/model"
 	"github.com/guoyk93/nas-tools/utils/archivestore"
 	"log"
 	"os"
@@ -45,8 +45,8 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 		log.Println("validating checksum:", nameBundle)
 	}
 
-	var ignoreItems []models.ArchivedFileIgnore
-	rg.Must0(client.Where(models.ArchivedFileIgnore{
+	var ignoreItems []model.ArchivedFileIgnore
+	rg.Must0(client.Where(model.ArchivedFileIgnore{
 		Year:   nameYear,
 		Bundle: nameBundle,
 	}).Find(&ignoreItems).Error)
@@ -167,8 +167,8 @@ func checkYear(fails *[]string, nameYear string) {
 			continue
 		}
 
-		var b models.ArchivedBundle
-		rg.Must0(client.Where(models.ArchivedBundle{ID: nameBundle, Year: nameYear}).FirstOrCreate(&b).Error)
+		var b model.ArchivedBundle
+		rg.Must0(client.Where(model.ArchivedBundle{ID: nameBundle, Year: nameYear}).FirstOrCreate(&b).Error)
 
 		namesBundle = append(namesBundle, nameBundle)
 	}
@@ -215,7 +215,7 @@ func main() {
 	archivestore.Debug = optDebug
 
 	if optFixMissingSize {
-		var records []models.ArchivedFile
+		var records []model.ArchivedFile
 		rg.Must0(client.Where("(size = ? OR size = ? OR crc32 = ?) AND symlink = ?", 0, 132, "00000000", false).FindInBatches(&records, 10000, func(tx *gorm.DB, batch int) error {
 			log.Println("fix missing size batch:", batch)
 			return tx.Transaction(func(tx *gorm.DB) (err error) {
@@ -225,7 +225,7 @@ func main() {
 					if info, err = os.Stat(file); err != nil {
 						return
 					}
-					if err = tx.Model(&models.ArchivedFile{}).Where("id = ?", record.ID).Update("size", info.Size()).Error; err != nil {
+					if err = tx.Model(&model.ArchivedFile{}).Where("id = ?", record.ID).Update("size", info.Size()).Error; err != nil {
 						return
 					}
 				}
@@ -235,7 +235,7 @@ func main() {
 	}
 
 	if optFixSymlinkSize {
-		var records []models.ArchivedFile
+		var records []model.ArchivedFile
 		rg.Must0(client.Select("id").Where("symlink = ?", true).FindInBatches(&records, 10000, func(tx *gorm.DB, batch int) error {
 			log.Println("fix symlink size batch:", batch)
 			return tx.Transaction(func(tx *gorm.DB) (err error) {
@@ -244,7 +244,7 @@ func main() {
 					if link, err = os.Readlink(filepath.Join(optDirRoot, record.Year, record.Bundle, record.Name)); err != nil {
 						return
 					}
-					if err = tx.Model(&models.ArchivedFile{}).Where("id = ?", record.ID).Update("size", len(link)).Error; err != nil {
+					if err = tx.Model(&model.ArchivedFile{}).Where("id = ?", record.ID).Update("size", len(link)).Error; err != nil {
 						return
 					}
 				}

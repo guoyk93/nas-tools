@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/guoyk93/nas-tools/models"
+	"github.com/guoyk93/nas-tools/model"
 	"log"
 	"os"
 	"os/exec"
@@ -23,7 +23,7 @@ func main() {
 	defer rg.Guard(&err)
 
 	client := rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
-	rg.Must0(client.AutoMigrate(&models.MirroredGitRepo{}))
+	rg.Must0(client.AutoMigrate(&model.MirroredGitRepo{}))
 
 	analyzeDir("/volume1/mirrors/Git", "", client)
 }
@@ -89,11 +89,11 @@ func recordDir(dirRoot string, dirRel string, client *gorm.DB) {
 		lastCommitMessage = "unknown"
 	}
 
-	var record models.MirroredGitRepo
+	var record model.MirroredGitRepo
 
-	client.Where(models.MirroredGitRepo{
+	client.Where(model.MirroredGitRepo{
 		Key: dirRel,
-	}).Assign(models.MirroredGitRepo{
+	}).Assign(model.MirroredGitRepo{
 		LastCommitAt:      lastCommitAt,
 		LastCommitBy:      lastCommitBy,
 		LastCommitMessage: lastCommitMessage,
@@ -108,7 +108,7 @@ func recordDir(dirRoot string, dirRel string, client *gorm.DB) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		rg.Must0(cmd.Run())
-		rg.Must0(client.Where(models.MirroredGitRepo{Key: dirRel}).Updates(models.MirroredGitRepo{LastGCAt: now}).Error)
+		rg.Must0(client.Where(model.MirroredGitRepo{Key: dirRel}).Updates(model.MirroredGitRepo{LastGCAt: now}).Error)
 	}
 
 	runtime.GC()
