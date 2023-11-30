@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/guoyk93/nas-tools/model"
+	"github.com/guoyk93/nas-tools/model/dao"
+	"gorm.io/gen"
 	"hash/crc32"
 	"io"
 	"log"
@@ -12,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/guoyk93/nas-tools/utils"
-	"gorm.io/gorm"
 )
 
 var (
@@ -62,29 +63,37 @@ type Item struct {
 }
 
 type Store struct {
+	db         *dao.Query
 	items      []Item
 	data       map[string]Item
 	notChecked map[string]struct{}
-	client     *gorm.DB
 	year       string
 	bundle     string
 	ignores    []string
 }
 
-func New(client *gorm.DB, year, bundle string) (store *Store, err error) {
+func New(db *dao.Query, year, bundle string) (store *Store, err error) {
 	store = &Store{
+		db:         db,
 		data:       map[string]Item{},
 		notChecked: map[string]struct{}{},
-		client:     client,
 		year:       year,
 		bundle:     bundle,
 	}
-	var items []model.ArchivedFileIgnore
-	if err = client.Where(&model.ArchivedFileIgnore{Year: year, Bundle: bundle}).Find(&items).Error; err != nil {
-		return
-	}
-	for _, item := range items {
-		store.ignores = append(store.ignores, item.Dir)
+
+	{
+		var items []*model.ArchivedFileIgnore
+
+		if items, err = db.ArchivedFileIgnore.Where(
+			db.ArchivedFileIgnore.Year.Eq(year),
+			db.ArchivedFileIgnore.Bundle.Eq(bundle),
+		).Find(); err != nil {
+			return
+		}
+
+		for _, item := range items {
+			store.ignores = append(store.ignores, item.Dir)
+		}
 	}
 	return
 }
@@ -100,11 +109,10 @@ func (st *Store) SampleNotChecked() (out []string) {
 }
 
 func (st *Store) CountDB() (out int64, err error) {
-	err = st.client.Where(&model.ArchivedFile{
-		Year:   st.year,
-		Bundle: st.bundle,
-	}).Model(&model.ArchivedFile{}).Count(&out).Error
-	return
+	return st.db.ArchivedFile.Where(
+		st.db.ArchivedFile.Year.Eq(st.year),
+		st.db.ArchivedFile.Bundle.Eq(st.bundle),
+	).Count()
 }
 
 func (st *Store) CountNotChecked() int {
@@ -178,39 +186,35 @@ func (st *Store) Check(dirBundle string, name string, sym bool) (err error) {
 }
 
 func (st *Store) Load() (err error) {
-	var records []model.ArchivedFile
+	var records []*model.ArchivedFile
 
-	if err = st.client.Where(model.ArchivedFile{
-		Year:   st.year,
-		Bundle: st.bundle,
-	}).FindInBatches(
-		&records,
-		1000,
-		func(tx *gorm.DB, batch int) error {
-			for _, record := range records {
-				item := Item{
-					Name:    record.Name,
-					Symlink: *record.Symlink,
-					CRC32:   record.CRC32,
-					Size:    *record.Size,
-				}
-				st.data[record.Name] = item
-				st.notChecked[record.Name] = struct{}{}
-				st.items = append(st.items, item)
+	if err = st.db.ArchivedFile.Where(
+		st.db.ArchivedFile.Year.Eq(st.year),
+		st.db.ArchivedFile.Bundle.Eq(st.bundle),
+	).FindInBatches(&records, 1000, func(tx gen.Dao, batch int) error {
+		for _, record := range records {
+			item := Item{
+				Name:    record.Name,
+				Symlink: *record.Symlink,
+				CRC32:   record.CRC32,
+				Size:    *record.Size,
 			}
-			return nil
-		},
-	).Error; err != nil {
-		return err
+			st.data[record.Name] = item
+			st.notChecked[record.Name] = struct{}{}
+			st.items = append(st.items, item)
+		}
+		return nil
+	}); err != nil {
+		return
 	}
 
 	return
 }
 
 func (st *Store) Save() error {
-	return st.client.Transaction(func(tx *gorm.DB) error {
+	return st.db.Transaction(func(db *dao.Query) error {
 		for _, item := range st.items {
-			if err := tx.Create(&model.ArchivedFile{
+			if err := db.ArchivedFile.Create(&model.ArchivedFile{
 				ID:      buildID(st.year, st.bundle, item.Name),
 				Year:    st.year,
 				Bundle:  st.bundle,
@@ -218,7 +222,7 @@ func (st *Store) Save() error {
 				Size:    utils.Ptr(item.Size),
 				Symlink: utils.Ptr(item.Symlink),
 				CRC32:   item.CRC32,
-			}).Error; err != nil {
+			}); err != nil {
 				return err
 			}
 		}

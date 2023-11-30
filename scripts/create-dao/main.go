@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
+	"os"
 )
 
 var allModels = []any{
@@ -21,18 +22,18 @@ func main() {
 	defer utils.Exit(&err)
 	defer rg.Guard(&err)
 
+	mysqlDSN := os.Getenv("MYSQL_DSN")
+
+	if mysqlDSN == "" {
+		mysqlDSN = "root:qwertyqwerty@tcp(127.0.0.1:3306)/automata?charset=utf8mb4&parseTime=True&loc=Local"
+	}
+
 	g := gen.NewGenerator(gen.Config{
 		OutPath: "./model/dao",
 		Mode:    gen.WithoutContext | gen.WithDefaultQuery,
 	})
 
-	db := rg.Must(
-		gorm.Open(
-			mysql.Open(
-				"root:qwertyqwerty@tcp(127.0.0.1:3306)/automata?charset=utf8mb4&parseTime=True&loc=Local"),
-			&gorm.Config{},
-		),
-	)
+	db := rg.Must(gorm.Open(mysql.Open(mysqlDSN), &gorm.Config{}))
 
 	rg.Must0(db.AutoMigrate(allModels...))
 

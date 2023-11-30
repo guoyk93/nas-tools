@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"github.com/guoyk93/nas-tools/model"
+	"github.com/guoyk93/nas-tools/model/dao"
 	"github.com/guoyk93/nas-tools/utils/archivestore"
+	"gorm.io/gen"
 	"log"
 	"os"
 	"path/filepath"
@@ -27,7 +29,7 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 	defer utils.Failed(&err, fails)
 	defer rg.Guard(&err)
 
-	rec := rg.Must(archivestore.New(client, nameYear, nameBundle))
+	rec := rg.Must(archivestore.New(db, nameYear, nameBundle))
 
 	doCreate := rg.Must(rec.CountDB()) == 0
 
@@ -45,11 +47,10 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 		log.Println("validating checksum:", nameBundle)
 	}
 
-	var ignoreItems []model.ArchivedFileIgnore
-	rg.Must0(client.Where(model.ArchivedFileIgnore{
-		Year:   nameYear,
-		Bundle: nameBundle,
-	}).Find(&ignoreItems).Error)
+	ignoreItems := rg.Must(db.ArchivedFileIgnore.Where(
+		db.ArchivedFileIgnore.Year.Eq(nameYear),
+		db.ArchivedFileIgnore.Bundle.Eq(nameBundle),
+	).Find())
 
 	ignores := map[string]struct{}{}
 	for _, item := range ignoreItems {
@@ -167,8 +168,10 @@ func checkYear(fails *[]string, nameYear string) {
 			continue
 		}
 
-		var b model.ArchivedBundle
-		rg.Must0(client.Where(model.ArchivedBundle{ID: nameBundle, Year: nameYear}).FirstOrCreate(&b).Error)
+		_ = rg.Must(db.ArchivedBundle.Where(
+			db.ArchivedBundle.ID.Eq(nameBundle),
+			db.ArchivedBundle.Year.Eq(nameYear),
+		).FirstOrCreate())
 
 		namesBundle = append(namesBundle, nameBundle)
 	}
@@ -189,7 +192,7 @@ var (
 	optFixMissingSize bool
 	optFixSymlinkSize bool
 
-	client *gorm.DB
+	db *dao.Query
 )
 
 func main() {
@@ -205,52 +208,83 @@ func main() {
 
 	log.Println("dirRoot:", optDirRoot, "debug:", optDebug, "skip-creation:", optSkipCreation, "skip-validation:", optSkipValidation)
 
-	client = rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
-	//rg.Must0(client.Debug().AutoMigrate(&archivestore.ArchivedFile{}, &archivestore.ArchivedFileIgnore{}, &archivestore.ArchivedBundle{}))
-
-	if optDebug {
-		client = client.Debug()
+	// create db
+	{
+		client := rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
+		if optDebug {
+			client = client.Debug()
+		}
+		db = dao.Use(client)
 	}
 
 	archivestore.Debug = optDebug
 
 	if optFixMissingSize {
-		var records []model.ArchivedFile
-		rg.Must0(client.Where("(size = ? OR size = ? OR crc32 = ?) AND symlink = ?", 0, 132, "00000000", false).FindInBatches(&records, 10000, func(tx *gorm.DB, batch int) error {
-			log.Println("fix missing size batch:", batch)
-			return tx.Transaction(func(tx *gorm.DB) (err error) {
+		var records []*model.ArchivedFile
+
+		rg.Must0(db.ArchivedFile.Where(
+			db.ArchivedFile.Where(
+				db.ArchivedFile.Size.Eq(0),
+			).Or(
+				db.ArchivedFile.Size.Eq(132),
+			).Or(
+				db.ArchivedFile.CRC32.Eq("00000000"),
+			),
+			db.ArchivedFile.Symlink.Is(false),
+		).FindInBatches(&records, 10000, func(tx gen.Dao, batch int) error {
+			return db.Transaction(func(db *dao.Query) (err error) {
 				for _, record := range records {
+					// read file size
 					file := filepath.Join(optDirRoot, record.Year, record.Bundle, record.Name)
 					var info os.FileInfo
 					if info, err = os.Stat(file); err != nil {
 						return
 					}
-					if err = tx.Model(&model.ArchivedFile{}).Where("id = ?", record.ID).Update("size", info.Size()).Error; err != nil {
+					// update size
+					if _, err = db.ArchivedFile.Where(
+						db.ArchivedFile.ID.Eq(record.ID),
+					).UpdateSimple(
+						db.ArchivedFile.Size.Value(info.Size()),
+					); err != nil {
 						return
 					}
 				}
 				return
 			})
-		}).Error)
+		}))
 	}
 
 	if optFixSymlinkSize {
-		var records []model.ArchivedFile
-		rg.Must0(client.Select("id").Where("symlink = ?", true).FindInBatches(&records, 10000, func(tx *gorm.DB, batch int) error {
-			log.Println("fix symlink size batch:", batch)
-			return tx.Transaction(func(tx *gorm.DB) (err error) {
-				for _, record := range records {
-					var link string
-					if link, err = os.Readlink(filepath.Join(optDirRoot, record.Year, record.Bundle, record.Name)); err != nil {
-						return
+		var records []*model.ArchivedFile
+
+		rg.Must0(db.ArchivedFile.
+			Select(db.ArchivedFile.ID).
+			Where(
+				db.ArchivedFile.Symlink.Is(true),
+			).
+			FindInBatches(&records, 10000, func(tx gen.Dao, batch int) error {
+				return db.Transaction(func(db *dao.Query) (err error) {
+					for _, record := range records {
+						// read link for symlink
+						var link string
+						if link, err = os.Readlink(
+							filepath.Join(optDirRoot, record.Year, record.Bundle, record.Name),
+						); err != nil {
+							return
+						}
+						// update size
+						if _, err = db.ArchivedFile.Where(
+							db.ArchivedFile.ID.Eq(record.ID),
+						).UpdateSimple(
+							db.ArchivedFile.Size.Value(int64(len(link))),
+						); err != nil {
+							return err
+						}
 					}
-					if err = tx.Model(&model.ArchivedFile{}).Where("id = ?", record.ID).Update("size", len(link)).Error; err != nil {
-						return
-					}
-				}
-				return
-			})
-		}).Error)
+					return nil
+				})
+			}),
+		)
 	}
 
 	var fails []string
