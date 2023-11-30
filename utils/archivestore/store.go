@@ -1,4 +1,4 @@
-package sumstore
+package archivestore
 
 import (
 	"crypto/sha256"

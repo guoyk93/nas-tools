@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/guoyk93/nas-tools/models"
-	"github.com/guoyk93/nas-tools/sumstore"
+	"github.com/guoyk93/nas-tools/utils/archivestore"
 	"log"
 	"os"
 	"path/filepath"
@@ -27,7 +27,7 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 	defer utils.Failed(&err, fails)
 	defer rg.Guard(&err)
 
-	rec := rg.Must(sumstore.New(client, nameYear, nameBundle))
+	rec := rg.Must(archivestore.New(client, nameYear, nameBundle))
 
 	doCreate := rg.Must(rec.CountDB()) == 0
 
@@ -88,7 +88,7 @@ type checksumDirOptions struct {
 	ignores   map[string]struct{}
 }
 
-func checksumDir(rec *sumstore.Store, opts checksumDirOptions, current string) (err error) {
+func checksumDir(rec *archivestore.Store, opts checksumDirOptions, current string) (err error) {
 	doCreate, dirBundle, ignores := opts.doCreate, opts.dirBundle, opts.ignores
 
 	var entries []os.DirEntry
@@ -206,13 +206,13 @@ func main() {
 	log.Println("dirRoot:", optDirRoot, "debug:", optDebug, "skip-creation:", optSkipCreation, "skip-validation:", optSkipValidation)
 
 	client = rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
-	//rg.Must0(client.Debug().AutoMigrate(&sumstore.ArchivedFile{}, &sumstore.ArchivedFileIgnore{}, &sumstore.ArchivedBundle{}))
+	//rg.Must0(client.Debug().AutoMigrate(&archivestore.ArchivedFile{}, &archivestore.ArchivedFileIgnore{}, &archivestore.ArchivedBundle{}))
 
 	if optDebug {
 		client = client.Debug()
 	}
 
-	sumstore.Debug = optDebug
+	archivestore.Debug = optDebug
 
 	if optFixMissingSize {
 		var records []models.ArchivedFile
