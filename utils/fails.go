@@ -1,4 +1,4 @@
-package misc
+package utils
 
 func Failed(err *error, fails *[]string) {
 	if *err != nil {

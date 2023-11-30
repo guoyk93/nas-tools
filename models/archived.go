@@ -1,4 +1,4 @@
-package sumstore
+package models
 
 import "time"
 

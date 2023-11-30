@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/guoyk93/nas-tools/models"
 	"log"
 	"os"
 	"os/exec"
@@ -10,32 +11,19 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/guoyk93/nas-tools/misc"
+	"github.com/guoyk93/nas-tools/utils"
 	"github.com/guoyk93/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-type MirroredGitRepo struct {
-	Key               string    `gorm:"column:key;primaryKey"`
-	LastGCAt          time.Time `gorm:"column:last_gc_at;index;not null;default:1970-01-01 00:00:00"`
-	LastCommitAt      time.Time `gorm:"column:last_commit_at;index;not null"`
-	LastCommitBy      string    `gorm:"column:last_commit_by;index;not null"`
-	LastCommitMessage string    `gorm:"column:last_commit_message;type:text"`
-	UpdatedAt         time.Time `gorm:"column:updated_at;index;not null;autoUpdateTime"`
-}
-
-func (MirroredGitRepo) TableName() string {
-	return "mirrored_git_repos"
-}
-
 func main() {
 	var err error
-	defer misc.Exit(&err)
+	defer utils.Exit(&err)
 	defer rg.Guard(&err)
 
 	client := rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
-	rg.Must0(client.AutoMigrate(&MirroredGitRepo{}))
+	rg.Must0(client.AutoMigrate(&models.MirroredGitRepo{}))
 
 	analyzeDir("/volume1/mirrors/Git", "", client)
 }
@@ -101,11 +89,11 @@ func recordDir(dirRoot string, dirRel string, client *gorm.DB) {
 		lastCommitMessage = "unknown"
 	}
 
-	var record MirroredGitRepo
+	var record models.MirroredGitRepo
 
-	client.Where(MirroredGitRepo{
+	client.Where(models.MirroredGitRepo{
 		Key: dirRel,
-	}).Assign(MirroredGitRepo{
+	}).Assign(models.MirroredGitRepo{
 		LastCommitAt:      lastCommitAt,
 		LastCommitBy:      lastCommitBy,
 		LastCommitMessage: lastCommitMessage,
@@ -120,7 +108,7 @@ func recordDir(dirRoot string, dirRel string, client *gorm.DB) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		rg.Must0(cmd.Run())
-		rg.Must0(client.Where(MirroredGitRepo{Key: dirRel}).Updates(MirroredGitRepo{LastGCAt: now}).Error)
+		rg.Must0(client.Where(models.MirroredGitRepo{Key: dirRel}).Updates(models.MirroredGitRepo{LastGCAt: now}).Error)
 	}
 
 	runtime.GC()

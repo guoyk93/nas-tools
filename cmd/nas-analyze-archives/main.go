@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"github.com/guoyk93/nas-tools/models"
+	"github.com/guoyk93/nas-tools/sumstore"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,8 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/guoyk93/nas-tools/misc"
-	"github.com/guoyk93/nas-tools/misc/sumstore"
+	"github.com/guoyk93/nas-tools/utils"
 	"github.com/guoyk93/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ var (
 
 func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 	var err error
-	defer misc.Failed(&err, fails)
+	defer utils.Failed(&err, fails)
 	defer rg.Guard(&err)
 
 	rec := rg.Must(sumstore.New(client, nameYear, nameBundle))
@@ -44,8 +45,8 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 		log.Println("validating checksum:", nameBundle)
 	}
 
-	var ignoreItems []sumstore.ArchivedFileIgnore
-	rg.Must0(client.Where(sumstore.ArchivedFileIgnore{
+	var ignoreItems []models.ArchivedFileIgnore
+	rg.Must0(client.Where(models.ArchivedFileIgnore{
 		Year:   nameYear,
 		Bundle: nameBundle,
 	}).Find(&ignoreItems).Error)
@@ -142,7 +143,7 @@ func checksumDir(rec *sumstore.Store, opts checksumDirOptions, current string) (
 
 func checkYear(fails *[]string, nameYear string) {
 	var err error
-	defer misc.Failed(&err, fails)
+	defer utils.Failed(&err, fails)
 	defer rg.Guard(&err)
 
 	var namesBundle []string
@@ -166,8 +167,8 @@ func checkYear(fails *[]string, nameYear string) {
 			continue
 		}
 
-		var b sumstore.ArchivedBundle
-		rg.Must0(client.Where(sumstore.ArchivedBundle{ID: nameBundle, Year: nameYear}).FirstOrCreate(&b).Error)
+		var b models.ArchivedBundle
+		rg.Must0(client.Where(models.ArchivedBundle{ID: nameBundle, Year: nameYear}).FirstOrCreate(&b).Error)
 
 		namesBundle = append(namesBundle, nameBundle)
 	}
@@ -193,7 +194,7 @@ var (
 
 func main() {
 	var err error
-	defer misc.Exit(&err)
+	defer utils.Exit(&err)
 	defer rg.Guard(&err)
 
 	optDebug, _ = strconv.ParseBool(os.Getenv("OPT_DEBUG"))
@@ -214,7 +215,7 @@ func main() {
 	sumstore.Debug = optDebug
 
 	if optFixMissingSize {
-		var records []sumstore.ArchivedFile
+		var records []models.ArchivedFile
 		rg.Must0(client.Where("(size = ? OR size = ? OR crc32 = ?) AND symlink = ?", 0, 132, "00000000", false).FindInBatches(&records, 10000, func(tx *gorm.DB, batch int) error {
 			log.Println("fix missing size batch:", batch)
 			return tx.Transaction(func(tx *gorm.DB) (err error) {
@@ -224,7 +225,7 @@ func main() {
 					if info, err = os.Stat(file); err != nil {
 						return
 					}
-					if err = tx.Model(&sumstore.ArchivedFile{}).Where("id = ?", record.ID).Update("size", info.Size()).Error; err != nil {
+					if err = tx.Model(&models.ArchivedFile{}).Where("id = ?", record.ID).Update("size", info.Size()).Error; err != nil {
 						return
 					}
 				}
@@ -234,7 +235,7 @@ func main() {
 	}
 
 	if optFixSymlinkSize {
-		var records []sumstore.ArchivedFile
+		var records []models.ArchivedFile
 		rg.Must0(client.Select("id").Where("symlink = ?", true).FindInBatches(&records, 10000, func(tx *gorm.DB, batch int) error {
 			log.Println("fix symlink size batch:", batch)
 			return tx.Transaction(func(tx *gorm.DB) (err error) {
@@ -243,7 +244,7 @@ func main() {
 					if link, err = os.Readlink(filepath.Join(optDirRoot, record.Year, record.Bundle, record.Name)); err != nil {
 						return
 					}
-					if err = tx.Model(&sumstore.ArchivedFile{}).Where("id = ?", record.ID).Update("size", len(link)).Error; err != nil {
+					if err = tx.Model(&models.ArchivedFile{}).Where("id = ?", record.ID).Update("size", len(link)).Error; err != nil {
 						return
 					}
 				}
