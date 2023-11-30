@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/guoyk93/nas-tools/model"
+	"github.com/guoyk93/nas-tools/model/dao"
 	"log"
 	"os"
 	"os/exec"
@@ -17,6 +18,10 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	q *dao.Query
+)
+
 func main() {
 	var err error
 	defer utils.Exit(&err)
@@ -25,10 +30,12 @@ func main() {
 	client := rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{}))
 	rg.Must0(client.AutoMigrate(&model.MirroredGitRepo{}))
 
-	analyzeDir("/volume1/mirrors/Git", "", client)
+	q = dao.Use(client)
+
+	analyzeDir("/volume1/mirrors/Git", "")
 }
 
-func checkGitDir(entries []os.DirEntry) bool {
+func checkGitDirEntries(entries []os.DirEntry) bool {
 	for _, entry := range entries {
 		if entry.IsDir() && entry.Name() == ".git" {
 			return true
@@ -51,7 +58,7 @@ func checkGitDir(entries []os.DirEntry) bool {
 	return foundRefs && foundObjects
 }
 
-func recordDir(dirRoot string, dirRel string, client *gorm.DB) {
+func recordGitDir(dirRoot string, dirRel string) {
 	var err error
 	defer func() {
 		if err == nil {
@@ -89,36 +96,41 @@ func recordDir(dirRoot string, dirRel string, client *gorm.DB) {
 		lastCommitMessage = "unknown"
 	}
 
-	var record model.MirroredGitRepo
-
-	client.Where(model.MirroredGitRepo{
-		Key: dirRel,
-	}).Assign(model.MirroredGitRepo{
-		LastCommitAt:      lastCommitAt,
-		LastCommitBy:      lastCommitBy,
-		LastCommitMessage: lastCommitMessage,
-	}).FirstOrCreate(&record)
+	record := rg.Must(q.MirroredGitRepo.Where(
+		q.MirroredGitRepo.Key.Eq(dirRel),
+	).Assign(
+		q.MirroredGitRepo.LastCommitAt.Value(lastCommitAt),
+		q.MirroredGitRepo.LastCommitBy.Value(lastCommitBy),
+		q.MirroredGitRepo.LastCommitMessage.Value(lastCommitMessage),
+	).FirstOrCreate())
 
 	log.Println("recorded:", dirRoot, dirRel, lastCommitAt, lastCommitBy, lastCommitMessage)
 
 	now := time.Now()
 
 	if now.Sub(record.LastGCAt) > time.Hour*24*7 {
+		// exec: git gc
 		cmd := exec.Command("git", "-C", filepath.Join(dirRoot, dirRel), "gc")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		rg.Must0(cmd.Run())
-		rg.Must0(client.Where(model.MirroredGitRepo{Key: dirRel}).Updates(model.MirroredGitRepo{LastGCAt: now}).Error)
+
+		// record
+		rg.Must(q.MirroredGitRepo.Where(
+			q.MirroredGitRepo.Key.Eq(dirRel),
+		).UpdateSimple(
+			q.MirroredGitRepo.LastGCAt.Value(now),
+		))
 	}
 
 	runtime.GC()
 }
 
-func analyzeDir(dirRoot string, dirRel string, client *gorm.DB) {
+func analyzeDir(dirRoot string, dirRel string) {
 	entries := rg.Must(os.ReadDir(filepath.Join(dirRoot, dirRel)))
 
-	if checkGitDir(entries) {
-		recordDir(dirRoot, dirRel, client)
+	if checkGitDirEntries(entries) {
+		recordGitDir(dirRoot, dirRel)
 	} else {
 		for _, entry := range entries {
 			if !entry.IsDir() {
@@ -127,7 +139,7 @@ func analyzeDir(dirRoot string, dirRel string, client *gorm.DB) {
 			if entry.Name() == "@eaDir" {
 				continue
 			}
-			analyzeDir(dirRoot, filepath.Join(dirRel, entry.Name()), client)
+			analyzeDir(dirRoot, filepath.Join(dirRel, entry.Name()))
 		}
 	}
 }
