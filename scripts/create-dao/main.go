@@ -33,7 +33,7 @@ func main() {
 		Mode:    gen.WithoutContext | gen.WithDefaultQuery,
 	})
 
-	db := rg.Must(gorm.Open(mysql.Open(mysqlDSN), &gorm.Config{}))
+	db := rg.Must(gorm.Open(mysql.Open(mysqlDSN), &gorm.Config{})).Debug()
 
 	rg.Must0(db.AutoMigrate(allModels...))
 
