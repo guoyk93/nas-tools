@@ -33,7 +33,6 @@ type ArchivedBundle struct {
 	ID        string    `json:"id" gorm:"column:id;primaryKey"`
 	Year      string    `json:"year" gorm:"column:year;not null;index"`
 	CreatedAt time.Time `gorm:"column:created_at;index;not null;autoCreateTime"`
-	Synced    bool      `gorm:"column:synced;index;not null;default:false"`
 }
 
 func (ArchivedBundle) TableName() string {
