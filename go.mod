@@ -3,7 +3,7 @@ module github.com/guoyk93/nas-tools
 go 1.21.1
 
 require (
-	github.com/go-git/go-git/v5 v5.10.1
+	github.com/go-git/go-git/v5 v5.11.0
 	github.com/guoyk93/rg v1.0.1
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gen v0.3.23
