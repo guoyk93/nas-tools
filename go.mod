@@ -1,10 +1,10 @@
-module github.com/guoyk93/nas-tools
+module github.com/yankeguo/nas-tools
 
 go 1.21.1
 
 require (
 	github.com/go-git/go-git/v5 v5.11.0
-	github.com/guoyk93/rg v1.0.1
+	github.com/yankeguo/rg v1.1.0
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gen v0.3.24
 	gorm.io/gorm v1.25.5
@@ -15,7 +15,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
-	github.com/cloudflare/circl v1.3.6 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect

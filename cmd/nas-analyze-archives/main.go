@@ -2,10 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/guoyk93/nas-tools/model"
-	"github.com/guoyk93/nas-tools/model/dao"
-	"github.com/guoyk93/nas-tools/utils/archivestore"
-	"gorm.io/gen"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,8 +9,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/guoyk93/nas-tools/utils"
-	"github.com/guoyk93/rg"
+	"github.com/yankeguo/nas-tools/model"
+	"github.com/yankeguo/nas-tools/model/dao"
+	"github.com/yankeguo/nas-tools/utils/archivestore"
+	"gorm.io/gen"
+
+	"github.com/yankeguo/nas-tools/utils"
+	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

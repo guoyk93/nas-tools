@@ -4,16 +4,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/guoyk93/nas-tools/model"
-	"github.com/guoyk93/nas-tools/model/dao"
-	"gorm.io/gen"
 	"hash/crc32"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/guoyk93/nas-tools/utils"
+	"github.com/yankeguo/nas-tools/model"
+	"github.com/yankeguo/nas-tools/model/dao"
+	"gorm.io/gen"
+
+	"github.com/yankeguo/nas-tools/utils"
 )
 
 var (

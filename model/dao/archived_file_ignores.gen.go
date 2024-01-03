@@ -16,7 +16,7 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/guoyk93/nas-tools/model"
+	"github.com/yankeguo/nas-tools/model"
 )
 
 func newArchivedFileIgnore(db *gorm.DB, opts ...gen.DOOption) archivedFileIgnore {

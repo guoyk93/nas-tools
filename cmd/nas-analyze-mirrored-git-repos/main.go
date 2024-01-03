@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/guoyk93/nas-tools/model/dao"
 	"log"
 	"os"
 	"os/exec"
@@ -9,10 +8,12 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/yankeguo/nas-tools/model/dao"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/guoyk93/nas-tools/utils"
-	"github.com/guoyk93/rg"
+	"github.com/yankeguo/nas-tools/utils"
+	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

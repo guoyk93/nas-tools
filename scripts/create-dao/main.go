@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/guoyk93/nas-tools/model"
-	"github.com/guoyk93/nas-tools/utils"
-	"github.com/guoyk93/rg"
+	"os"
+
+	"github.com/yankeguo/nas-tools/model"
+	"github.com/yankeguo/nas-tools/utils"
+	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
-	"os"
 )
 
 var allModels = []any{
