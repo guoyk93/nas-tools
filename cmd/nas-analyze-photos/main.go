@@ -93,7 +93,7 @@ func main() {
 			return
 		}
 
-		output = append(output, "# keep "+records[0].Path)
+		output = append(output, "# ("+md5+") KEEP: "+records[0].Path)
 
 		for _, record := range records[1:] {
 			output = append(output, "rm -vf "+strconv.Quote(record.Path))
