@@ -73,6 +73,26 @@ func main() {
 	}))
 }
 
+func checksumFile(fullPath string, tx *dao.Query) (err error) {
+	id := sha256sum(optBundle + "::" + fullPath)
+
+	var md5 string
+	if md5, err = md5sumFile(fullPath); err != nil {
+		return
+	}
+
+	if err = tx.PhotoFile.Create(&model.PhotoFile{
+		ID:     id,
+		Bundle: optBundle,
+		Path:   fullPath,
+		Md5:    md5,
+	}); err != nil {
+		return
+	}
+
+	return
+}
+
 func checksumDir(dir string, tx *dao.Query) (err error) {
 	log.Println("checking:", dir)
 
@@ -83,6 +103,10 @@ func checksumDir(dir string, tx *dao.Query) (err error) {
 	}
 
 	for _, entry := range entries {
+		if entry.Name() == "@eaDir" {
+			continue
+		}
+
 		fullPath := filepath.Join(dir, entry.Name())
 
 		if entry.IsDir() {
@@ -102,19 +126,7 @@ func checksumDir(dir string, tx *dao.Query) (err error) {
 			continue
 		}
 
-		id := sha256sum(optBundle + "::" + fullPath)
-
-		var md5 string
-		if md5, err = md5sumFile(fullPath); err != nil {
-			return
-		}
-
-		if err = tx.PhotoFile.Create(&model.PhotoFile{
-			ID:     id,
-			Bundle: optBundle,
-			Path:   fullPath,
-			Md5:    md5,
-		}); err != nil {
+		if err = checksumFile(fullPath, tx); err != nil {
 			return
 		}
 	}
