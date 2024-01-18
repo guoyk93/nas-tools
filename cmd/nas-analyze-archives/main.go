@@ -11,12 +11,11 @@ import (
 
 	"github.com/yankeguo/nas-tools/model"
 	"github.com/yankeguo/nas-tools/model/dao"
-	"github.com/yankeguo/nas-tools/utils/archivestore"
-	"gorm.io/gen"
-
 	"github.com/yankeguo/nas-tools/utils"
+	"github.com/yankeguo/nas-tools/utils/archivestore"
 	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
+	"gorm.io/gen"
 	"gorm.io/gorm"
 )
 
