@@ -26,7 +26,7 @@ func main() {
 	mysqlDSN := os.Getenv("MYSQL_DSN")
 
 	if mysqlDSN == "" {
-		mysqlDSN = "root:qwertyqwerty@tcp(127.0.0.1:3306)/automata?charset=utf8mb4&parseTime=True&loc=Local"
+		mysqlDSN = "root:qwerty@tcp(127.0.0.1:3306)/automata?charset=utf8mb4&parseTime=True&loc=Local"
 	}
 
 	g := gen.NewGenerator(gen.Config{
