@@ -28,7 +28,7 @@ func newPhotoFile(db *gorm.DB, opts ...gen.DOOption) photoFile {
 	tableName := _photoFile.photoFileDo.TableName()
 	_photoFile.ALL = field.NewAsterisk(tableName)
 	_photoFile.ID = field.NewString(tableName, "id")
-	_photoFile.Group_ = field.NewString(tableName, "group")
+	_photoFile.Bundle = field.NewString(tableName, "bundle")
 	_photoFile.Path = field.NewString(tableName, "path")
 	_photoFile.Md5 = field.NewString(tableName, "md5")
 
@@ -42,7 +42,7 @@ type photoFile struct {
 
 	ALL    field.Asterisk
 	ID     field.String
-	Group_ field.String
+	Bundle field.String
 	Path   field.String
 	Md5    field.String
 
@@ -62,7 +62,7 @@ func (p photoFile) As(alias string) *photoFile {
 func (p *photoFile) updateTableName(table string) *photoFile {
 	p.ALL = field.NewAsterisk(table)
 	p.ID = field.NewString(table, "id")
-	p.Group_ = field.NewString(table, "group")
+	p.Bundle = field.NewString(table, "bundle")
 	p.Path = field.NewString(table, "path")
 	p.Md5 = field.NewString(table, "md5")
 
@@ -83,7 +83,7 @@ func (p *photoFile) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 func (p *photoFile) fillFieldMap() {
 	p.fieldMap = make(map[string]field.Expr, 4)
 	p.fieldMap["id"] = p.ID
-	p.fieldMap["group"] = p.Group_
+	p.fieldMap["bundle"] = p.Bundle
 	p.fieldMap["path"] = p.Path
 	p.fieldMap["md5"] = p.Md5
 }

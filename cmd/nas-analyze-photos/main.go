@@ -26,8 +26,8 @@ var (
 var (
 	db *dao.Query
 
-	optGroup string
-	optDir   string
+	optBundle string
+	optDir    string
 )
 
 func main() {
@@ -37,12 +37,12 @@ func main() {
 
 	db = dao.Use(rg.Must(gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{})))
 
-	flag.StringVar(&optGroup, "group", "", "group")
+	flag.StringVar(&optBundle, "bundle", "", "bundle")
 	flag.StringVar(&optDir, "dir", "", "dir")
 	flag.Parse()
 
-	if optGroup == "" {
-		err = errors.New("group is required")
+	if optBundle == "" {
+		err = errors.New("bundle is required")
 		return
 	}
 

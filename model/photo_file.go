@@ -1,10 +1,10 @@
 package model
 
 type PhotoFile struct {
-	// shasum256(group + path)
+	// shasum256(bundle + path)
 	ID string `gorm:"column:id;primaryKey"`
-	// group
-	Group string `gorm:"column:group;index;not null"`
+	// bundle
+	Bundle string `gorm:"column:bundle;index;not null"`
 	// path
 	Path string `gorm:"column:path;type:text"`
 	// MD5
