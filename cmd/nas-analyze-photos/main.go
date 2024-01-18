@@ -29,6 +29,8 @@ var (
 		".mov":  {},
 		".heic": {},
 		".mp4":  {},
+		".dng":  {},
+		".jpeg": {},
 	}
 
 	alertedExts = map[string]struct{}{}
@@ -103,7 +105,7 @@ func checksumDir(dir string, tx *dao.Query) (err error) {
 	}
 
 	for _, entry := range entries {
-		if entry.Name() == "@eaDir" {
+		if entry.Name() == "@eaDir" || entry.Name() == ".DS_Store" {
 			continue
 		}
 
