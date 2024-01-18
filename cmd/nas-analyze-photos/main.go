@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"flag"
@@ -11,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/yankeguo/nas-tools/model"
@@ -75,6 +77,64 @@ func main() {
 	rg.Must0(db.Transaction(func(tx *dao.Query) (err error) {
 		return checksumDir(optDir, tx)
 	}))
+
+	duplicatedMd5s := rg.Must(listDuplicatedMd5s())
+
+	output := []string{"# deletion script"}
+
+	for _, md5 := range duplicatedMd5s {
+		records := rg.Must(db.PhotoFile.Where(
+			db.PhotoFile.Bundle.Eq(optBundle),
+			db.PhotoFile.Md5.Eq(md5),
+		).Find())
+
+		if len(records) < 2 {
+			err = errors.New("invalid duplicated md5")
+			return
+		}
+
+		output = append(output, "# keep "+records[0].Path)
+
+		for _, record := range records[1:] {
+			output = append(output, "rm -vf "+strconv.Quote(record.Path))
+		}
+	}
+
+	log.Println(strings.Join(output, "\n"))
+}
+
+func listDuplicatedMd5s() (md5s []string, err error) {
+	var rows *sql.Rows
+
+	if rows, err = db.PhotoFile.Where(
+		db.PhotoFile.Bundle.Eq(optBundle),
+	).Select(
+		db.PhotoFile.Md5,
+		db.PhotoFile.Md5.Count().As("count"),
+	).Group(
+		db.PhotoFile.Md5,
+	).Having(
+		db.PhotoFile.Md5.Count().Gt(1),
+	).Rows(); err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			md5   string
+			count int
+		)
+		if err = rows.Scan(&md5, &count); err != nil {
+			return
+		}
+		md5s = append(md5s, md5)
+	}
+
+	err = rows.Err()
+
+	return
 }
 
 func checksumFile(fullPath string, tx *dao.Query) (err error) {
