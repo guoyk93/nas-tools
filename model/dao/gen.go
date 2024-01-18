@@ -21,6 +21,7 @@ var (
 	ArchivedFile       *archivedFile
 	ArchivedFileIgnore *archivedFileIgnore
 	MirroredGitRepo    *mirroredGitRepo
+	PhotoFile          *photoFile
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
@@ -29,6 +30,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	ArchivedFile = &Q.ArchivedFile
 	ArchivedFileIgnore = &Q.ArchivedFileIgnore
 	MirroredGitRepo = &Q.MirroredGitRepo
+	PhotoFile = &Q.PhotoFile
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
@@ -38,6 +40,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		ArchivedFile:       newArchivedFile(db, opts...),
 		ArchivedFileIgnore: newArchivedFileIgnore(db, opts...),
 		MirroredGitRepo:    newMirroredGitRepo(db, opts...),
+		PhotoFile:          newPhotoFile(db, opts...),
 	}
 }
 
@@ -48,6 +51,7 @@ type Query struct {
 	ArchivedFile       archivedFile
 	ArchivedFileIgnore archivedFileIgnore
 	MirroredGitRepo    mirroredGitRepo
+	PhotoFile          photoFile
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -59,6 +63,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		ArchivedFile:       q.ArchivedFile.clone(db),
 		ArchivedFileIgnore: q.ArchivedFileIgnore.clone(db),
 		MirroredGitRepo:    q.MirroredGitRepo.clone(db),
+		PhotoFile:          q.PhotoFile.clone(db),
 	}
 }
 
@@ -77,6 +82,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		ArchivedFile:       q.ArchivedFile.replaceDB(db),
 		ArchivedFileIgnore: q.ArchivedFileIgnore.replaceDB(db),
 		MirroredGitRepo:    q.MirroredGitRepo.replaceDB(db),
+		PhotoFile:          q.PhotoFile.replaceDB(db),
 	}
 }
 
@@ -85,6 +91,7 @@ type queryCtx struct {
 	ArchivedFile       *archivedFileDo
 	ArchivedFileIgnore *archivedFileIgnoreDo
 	MirroredGitRepo    *mirroredGitRepoDo
+	PhotoFile          *photoFileDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
@@ -93,6 +100,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		ArchivedFile:       q.ArchivedFile.WithContext(ctx),
 		ArchivedFileIgnore: q.ArchivedFileIgnore.WithContext(ctx),
 		MirroredGitRepo:    q.MirroredGitRepo.WithContext(ctx),
+		PhotoFile:          q.PhotoFile.WithContext(ctx),
 	}
 }
 

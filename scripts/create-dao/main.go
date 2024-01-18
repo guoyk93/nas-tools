@@ -16,6 +16,7 @@ var allModels = []any{
 	model.ArchivedFile{},
 	model.ArchivedFileIgnore{},
 	model.MirroredGitRepo{},
+	model.PhotoFile{},
 }
 
 func main() {
