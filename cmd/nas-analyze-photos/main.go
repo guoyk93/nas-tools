@@ -31,6 +31,8 @@ var (
 		".mp4":  {},
 		".dng":  {},
 		".jpeg": {},
+		".arw":  {},
+		".cr2":  {},
 	}
 
 	alertedExts = map[string]struct{}{}
