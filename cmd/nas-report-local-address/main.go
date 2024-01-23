@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
-	"log"
 	"os"
 	"strings"
 
@@ -43,5 +43,25 @@ func main() {
 		Name: optDomain,
 	}))
 
-	log.Print(records, info)
+	var recordID string
+
+	for _, record := range records {
+		if record.Type == "A" {
+			recordID = record.ID
+			break
+		}
+	}
+
+	if recordID == "" {
+		err = errors.New("no A record found")
+		return
+	}
+
+	rg.Must(cf.UpdateDNSRecord(ctx, rc, cloudflare.UpdateDNSRecordParams{
+		ID:      recordID,
+		Type:    "A",
+		Content: optAddress,
+		Proxied: utils.Ptr(false),
+		TTL:     300,
+	}))
 }
