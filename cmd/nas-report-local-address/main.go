@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	cf := rg.Must(cloudflare.New(os.Getenv("CLOUDFLARE_API_KEY"), os.Getenv("CLOUDFLARE_API_EMAIL")))
+	cf := rg.Must(cloudflare.NewWithAPIToken(os.Getenv("CLOUDFLARE_API_TOKEN")))
 
 	rc := cloudflare.ZoneIdentifier(os.Getenv("CLOUDFLARE_ZONE_ID"))
 
