@@ -57,6 +57,10 @@ func main() {
 		return
 	}
 
+	if record.Content == optAddress {
+		return
+	}
+
 	rg.Must(cf.UpdateDNSRecord(ctx, rc, cloudflare.UpdateDNSRecordParams{
 		ID:      record.ID,
 		Name:    record.Name,
