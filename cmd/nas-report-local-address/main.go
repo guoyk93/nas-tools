@@ -39,26 +39,27 @@ func main() {
 
 	ctx := context.Background()
 
-	records, info := rg.Must2(cf.ListDNSRecords(ctx, rc, cloudflare.ListDNSRecordsParams{
+	records, _ := rg.Must2(cf.ListDNSRecords(ctx, rc, cloudflare.ListDNSRecordsParams{
 		Name: optDomain,
 	}))
 
-	var recordID string
+	var record cloudflare.DNSRecord
 
-	for _, record := range records {
-		if record.Type == "A" {
-			recordID = record.ID
+	for _, _record := range records {
+		if _record.Type == "A" {
+			record = _record
 			break
 		}
 	}
 
-	if recordID == "" {
+	if record.ID == "" {
 		err = errors.New("no A record found")
 		return
 	}
 
 	rg.Must(cf.UpdateDNSRecord(ctx, rc, cloudflare.UpdateDNSRecordParams{
-		ID:      recordID,
+		ID:      record.ID,
+		Name:    record.Name,
 		Type:    "A",
 		Content: optAddress,
 		Proxied: utils.Ptr(false),
