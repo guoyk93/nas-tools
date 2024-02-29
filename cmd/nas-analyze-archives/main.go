@@ -114,7 +114,7 @@ func checksumDir(rec *archivestore.Store, opts checksumDirOptions, current strin
 			continue
 		}
 
-		if entry.Name() == ".DS_Store" {
+		if entry.Name() == ".DS_Store" || entry.Name() == "Thumbs.db" {
 			continue
 		}
 
