@@ -127,7 +127,7 @@ func main() {
 				continue
 			}
 			packBundle(entryYear.Name(), entryBundle.Name())
-			//markBundle(entryBundle.Name())
+			markBundle(entryBundle.Name())
 			if isPackedSizeExceeded() {
 				log.Println("existing tape packs size exceeds threshold, skip preparing tape pack")
 				return
