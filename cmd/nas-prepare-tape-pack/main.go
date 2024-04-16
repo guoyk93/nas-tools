@@ -60,21 +60,23 @@ func markBundle(bundle string) {
 }
 
 func packBundle(year, bundle string) {
-	fileTarget := filepath.Join(dirTapePack, bundle+".tar.zst")
+	fileTarget := filepath.Join(dirTapePack, bundle+".7z")
+	os.RemoveAll(fileTarget)
+	os.RemoveAll(fileTarget + ".txt")
 
 	{
 		args := []string{
-			"tar", "--zstd", "-cvf", fileTarget,
-			"--owner", "yanke:1000", "--group", "yanke:1000",
+			"7z", "a", "-mx=0",
 		}
 		for _, ex := range excludes {
-			args = append(args, "--exclude", ex)
+			args = append(args, "-xr!"+ex)
 		}
-		args = append(args, "-C", dirTapeOrig, filepath.Join(year, bundle))
+		args = append(args, fileTarget, filepath.Join(year, bundle))
 
 		log.Println(strings.Join(args, " "))
 
 		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = dirTapeOrig
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		rg.Must0(cmd.Run())
@@ -82,7 +84,7 @@ func packBundle(year, bundle string) {
 
 	{
 		args := []string{
-			"tar", "-tvf", fileTarget,
+			"7z", "l", fileTarget,
 		}
 
 		log.Println(strings.Join(args, " "))
