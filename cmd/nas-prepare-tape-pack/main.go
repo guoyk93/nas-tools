@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"github.com/yankeguo/nas-tools/utils"
 	"github.com/yankeguo/rg"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -71,6 +73,11 @@ func packBundle(year, bundle string) {
 		args = append(args, "-C", dirTapeOrig, filepath.Join(year, bundle))
 
 		log.Println(strings.Join(args, " "))
+
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		rg.Must0(cmd.Run())
 	}
 
 	{
@@ -79,6 +86,14 @@ func packBundle(year, bundle string) {
 		}
 
 		log.Println(strings.Join(args, " "))
+
+		buf := &bytes.Buffer{}
+
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = buf
+		rg.Must0(cmd.Run())
+
+		rg.Must0(os.WriteFile(fileTarget+".txt", buf.Bytes(), 0644))
 	}
 }
 
