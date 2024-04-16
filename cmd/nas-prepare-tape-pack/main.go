@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	tapeSizeThreshold = 1500 * 1024 * 1024 * 1024 // 1.5TB
+	tapeSizeThreshold = 1500 * 1000 * 1000 * 1000 // 1.5TB
 
 	dirTapeOrig = "/volume1/archives"
 	dirTapePack = "/volume1/tape/PACK"
@@ -50,7 +50,7 @@ func isPackedSizeExceeded() bool {
 	return existedSize > tapeSizeThreshold
 }
 
-func isMarked(bundle string) bool {
+func isBundleMarked(bundle string) bool {
 	_, err := os.Stat(filepath.Join(dirTapeMark, bundle+extMark))
 	return err == nil
 }
@@ -123,9 +123,10 @@ func main() {
 			if !patternBundle.MatchString(entryBundle.Name()) {
 				continue
 			}
-			if isMarked(entryBundle.Name()) {
+			if isBundleMarked(entryBundle.Name()) {
 				continue
 			}
+			log.Println("packing", entryYear.Name(), entryBundle.Name())
 			packBundle(entryYear.Name(), entryBundle.Name())
 			markBundle(entryBundle.Name())
 			if isPackedSizeExceeded() {
