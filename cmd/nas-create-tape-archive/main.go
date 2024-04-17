@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"github.com/yankeguo/nas-tools/model"
 	"github.com/yankeguo/nas-tools/model/dao"
@@ -65,12 +66,27 @@ func main() {
 
 		var totalSize int64
 		for _, bundle := range bundles {
-			record := rg.Must(db.ArchivedFile.Where(
+			var record *model.ArchivedFile
+
+			record, err = db.ArchivedFile.Where(
 				db.ArchivedFile.Bundle.Eq(bundle.ID),
 			).Select(
 				db.ArchivedFile.Bundle,
 				db.ArchivedFile.Size.Sum().As("size"),
-			).Group(db.ArchivedFile.Bundle).Take())
+			).Group(db.ArchivedFile.Bundle).Take()
+
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					err = nil
+					continue
+				} else {
+					rg.Must0(err)
+				}
+			}
+
+			if *record.Size == 0 {
+				rg.Must0(errors.New("bundle size is 0"))
+			}
 
 			totalSize += *record.Size
 
