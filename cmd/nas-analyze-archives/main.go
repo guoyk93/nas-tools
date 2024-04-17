@@ -47,16 +47,6 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 		log.Println("validating checksum:", nameBundle)
 	}
 
-	ignoreItems := rg.Must(db.ArchivedFileIgnore.Where(
-		db.ArchivedFileIgnore.Year.Eq(nameYear),
-		db.ArchivedFileIgnore.Bundle.Eq(nameBundle),
-	).Find())
-
-	ignores := map[string]struct{}{}
-	for _, item := range ignoreItems {
-		ignores[item.Dir] = struct{}{}
-	}
-
 	if !doCreate {
 		rg.Must0(rec.Load())
 	}
@@ -66,7 +56,6 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 		checksumDirOptions{
 			doCreate:  doCreate,
 			dirBundle: filepath.Join(optDirRoot, nameYear, nameBundle),
-			ignores:   ignores,
 		},
 		"",
 	); err != nil {
@@ -86,24 +75,21 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 type checksumDirOptions struct {
 	doCreate  bool
 	dirBundle string
-	ignores   map[string]struct{}
 }
 
 func checksumDir(rec *archivestore.Store, opts checksumDirOptions, current string) (err error) {
-	doCreate, dirBundle, ignores := opts.doCreate, opts.dirBundle, opts.ignores
+	doCreate, dirBundle := opts.doCreate, opts.dirBundle
 
 	var entries []os.DirEntry
 	if entries, err = os.ReadDir(filepath.Join(dirBundle, current)); err != nil {
 		return
 	}
 	for _, entry := range entries {
+		if archivestore.ShouldIgnore(entry.Name()) {
+			continue
+		}
+
 		if entry.IsDir() {
-			if entry.Name() == "@eaDir" {
-				continue
-			}
-			if _, ok := ignores[entry.Name()]; ok {
-				continue
-			}
 			if err = checksumDir(
 				rec,
 				opts,
@@ -111,14 +97,6 @@ func checksumDir(rec *archivestore.Store, opts checksumDirOptions, current strin
 			); err != nil {
 				return
 			}
-			continue
-		}
-
-		if entry.Name() == ".DS_Store" || entry.Name() == "Thumbs.db" {
-			continue
-		}
-
-		if strings.HasPrefix(entry.Name(), "._") {
 			continue
 		}
 
@@ -156,9 +134,10 @@ func checkYear(fails *[]string, nameYear string) {
 
 		nameBundle := entryBundle.Name()
 
-		if nameBundle == "@eaDir" {
+		if archivestore.ShouldIgnore(nameBundle) {
 			continue
 		}
+
 		if !strings.HasPrefix(nameBundle, nameYear+"-") {
 			*fails = append(*fails, "invalid year prefix: "+nameBundle+" in "+nameYear)
 			continue
@@ -296,7 +275,7 @@ func main() {
 
 		nameYear := entryYear.Name()
 
-		if nameYear == "@eaDir" {
+		if archivestore.ShouldIgnore(nameYear) {
 			continue
 		}
 

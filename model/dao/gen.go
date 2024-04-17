@@ -16,54 +16,49 @@ import (
 )
 
 var (
-	Q                  = new(Query)
-	ArchivedBundle     *archivedBundle
-	ArchivedFile       *archivedFile
-	ArchivedFileIgnore *archivedFileIgnore
-	MirroredGitRepo    *mirroredGitRepo
-	PhotoFile          *photoFile
+	Q               = new(Query)
+	ArchivedBundle  *archivedBundle
+	ArchivedFile    *archivedFile
+	MirroredGitRepo *mirroredGitRepo
+	PhotoFile       *photoFile
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
 	ArchivedBundle = &Q.ArchivedBundle
 	ArchivedFile = &Q.ArchivedFile
-	ArchivedFileIgnore = &Q.ArchivedFileIgnore
 	MirroredGitRepo = &Q.MirroredGitRepo
 	PhotoFile = &Q.PhotoFile
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:                 db,
-		ArchivedBundle:     newArchivedBundle(db, opts...),
-		ArchivedFile:       newArchivedFile(db, opts...),
-		ArchivedFileIgnore: newArchivedFileIgnore(db, opts...),
-		MirroredGitRepo:    newMirroredGitRepo(db, opts...),
-		PhotoFile:          newPhotoFile(db, opts...),
+		db:              db,
+		ArchivedBundle:  newArchivedBundle(db, opts...),
+		ArchivedFile:    newArchivedFile(db, opts...),
+		MirroredGitRepo: newMirroredGitRepo(db, opts...),
+		PhotoFile:       newPhotoFile(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	ArchivedBundle     archivedBundle
-	ArchivedFile       archivedFile
-	ArchivedFileIgnore archivedFileIgnore
-	MirroredGitRepo    mirroredGitRepo
-	PhotoFile          photoFile
+	ArchivedBundle  archivedBundle
+	ArchivedFile    archivedFile
+	MirroredGitRepo mirroredGitRepo
+	PhotoFile       photoFile
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:                 db,
-		ArchivedBundle:     q.ArchivedBundle.clone(db),
-		ArchivedFile:       q.ArchivedFile.clone(db),
-		ArchivedFileIgnore: q.ArchivedFileIgnore.clone(db),
-		MirroredGitRepo:    q.MirroredGitRepo.clone(db),
-		PhotoFile:          q.PhotoFile.clone(db),
+		db:              db,
+		ArchivedBundle:  q.ArchivedBundle.clone(db),
+		ArchivedFile:    q.ArchivedFile.clone(db),
+		MirroredGitRepo: q.MirroredGitRepo.clone(db),
+		PhotoFile:       q.PhotoFile.clone(db),
 	}
 }
 
@@ -77,30 +72,27 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:                 db,
-		ArchivedBundle:     q.ArchivedBundle.replaceDB(db),
-		ArchivedFile:       q.ArchivedFile.replaceDB(db),
-		ArchivedFileIgnore: q.ArchivedFileIgnore.replaceDB(db),
-		MirroredGitRepo:    q.MirroredGitRepo.replaceDB(db),
-		PhotoFile:          q.PhotoFile.replaceDB(db),
+		db:              db,
+		ArchivedBundle:  q.ArchivedBundle.replaceDB(db),
+		ArchivedFile:    q.ArchivedFile.replaceDB(db),
+		MirroredGitRepo: q.MirroredGitRepo.replaceDB(db),
+		PhotoFile:       q.PhotoFile.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	ArchivedBundle     *archivedBundleDo
-	ArchivedFile       *archivedFileDo
-	ArchivedFileIgnore *archivedFileIgnoreDo
-	MirroredGitRepo    *mirroredGitRepoDo
-	PhotoFile          *photoFileDo
+	ArchivedBundle  *archivedBundleDo
+	ArchivedFile    *archivedFileDo
+	MirroredGitRepo *mirroredGitRepoDo
+	PhotoFile       *photoFileDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		ArchivedBundle:     q.ArchivedBundle.WithContext(ctx),
-		ArchivedFile:       q.ArchivedFile.WithContext(ctx),
-		ArchivedFileIgnore: q.ArchivedFileIgnore.WithContext(ctx),
-		MirroredGitRepo:    q.MirroredGitRepo.WithContext(ctx),
-		PhotoFile:          q.PhotoFile.WithContext(ctx),
+		ArchivedBundle:  q.ArchivedBundle.WithContext(ctx),
+		ArchivedFile:    q.ArchivedFile.WithContext(ctx),
+		MirroredGitRepo: q.MirroredGitRepo.WithContext(ctx),
+		PhotoFile:       q.PhotoFile.WithContext(ctx),
 	}
 }
 

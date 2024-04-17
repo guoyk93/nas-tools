@@ -17,22 +17,11 @@ func (ArchivedFile) TableName() string {
 	return "archived_files"
 }
 
-type ArchivedFileIgnore struct {
-	ID        uint      `gorm:"column:id;primaryKey"`
-	Year      string    `gorm:"column:year;index;not null"`
-	Bundle    string    `gorm:"column:bundle;index;not null"`
-	Dir       string    `gorm:"column:dir;index;not null"`
-	CreatedAt time.Time `gorm:"column:created_at;index;not null;autoCreateTime"`
-}
-
-func (ArchivedFileIgnore) TableName() string {
-	return "archived_file_ignores"
-}
-
 type ArchivedBundle struct {
 	ID        string    `json:"id" gorm:"column:id;primaryKey"`
 	Year      string    `json:"year" gorm:"column:year;not null;index"`
 	CreatedAt time.Time `gorm:"column:created_at;index;not null;autoCreateTime"`
+	Tape      string    `json:"tape" gorm:"column:tape;varchar(64);not null;default:'';index"`
 }
 
 func (ArchivedBundle) TableName() string {

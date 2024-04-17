@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/yankeguo/nas-tools/model"
 	"github.com/yankeguo/nas-tools/model/dao"
@@ -19,7 +20,48 @@ import (
 
 var (
 	Debug = false
+
+	Ignores = map[string]struct{}{
+		"@eaDir":       {},
+		".DS_Store":    {},
+		"venv":         {},
+		".venv":        {},
+		"node_modules": {},
+		"Thumbs.db":    {},
+	}
+	IgnorePrefixes = []string{
+		"._",
+	}
 )
+
+func ShouldIgnoreFullPath(path string) bool {
+	for {
+		var name string
+		path, name = filepath.Split(path)
+
+		if ShouldIgnore(name) {
+			return true
+		}
+
+		if path == "" {
+			return false
+		}
+	}
+}
+
+func ShouldIgnore(name string) bool {
+	if _, ok := Ignores[name]; ok {
+		return true
+	}
+
+	for _, prefix := range IgnorePrefixes {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func buildID(year, bundle, name string) string {
 	digest := sha256.Sum256([]byte(filepath.Join(year, bundle, name)))
@@ -70,7 +112,6 @@ type Store struct {
 	notChecked map[string]struct{}
 	year       string
 	bundle     string
-	ignores    []string
 }
 
 func New(db *dao.Query, year, bundle string) (store *Store, err error) {
@@ -80,21 +121,6 @@ func New(db *dao.Query, year, bundle string) (store *Store, err error) {
 		notChecked: map[string]struct{}{},
 		year:       year,
 		bundle:     bundle,
-	}
-
-	{
-		var items []*model.ArchivedFileIgnore
-
-		if items, err = db.ArchivedFileIgnore.Where(
-			db.ArchivedFileIgnore.Year.Eq(year),
-			db.ArchivedFileIgnore.Bundle.Eq(bundle),
-		).Find(); err != nil {
-			return
-		}
-
-		for _, item := range items {
-			store.ignores = append(store.ignores, item.Dir)
-		}
 	}
 	return
 }
@@ -194,6 +220,9 @@ func (st *Store) Load() (err error) {
 		st.db.ArchivedFile.Bundle.Eq(st.bundle),
 	).FindInBatches(&records, 1000, func(tx gen.Dao, batch int) error {
 		for _, record := range records {
+			if ShouldIgnoreFullPath(record.Name) {
+				continue
+			}
 			item := Item{
 				Name:    record.Name,
 				Symlink: *record.Symlink,

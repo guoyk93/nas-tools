@@ -30,6 +30,7 @@ func newArchivedBundle(db *gorm.DB, opts ...gen.DOOption) archivedBundle {
 	_archivedBundle.ID = field.NewString(tableName, "id")
 	_archivedBundle.Year = field.NewString(tableName, "year")
 	_archivedBundle.CreatedAt = field.NewTime(tableName, "created_at")
+	_archivedBundle.Tape = field.NewString(tableName, "tape")
 
 	_archivedBundle.fillFieldMap()
 
@@ -43,6 +44,7 @@ type archivedBundle struct {
 	ID        field.String
 	Year      field.String
 	CreatedAt field.Time
+	Tape      field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -62,6 +64,7 @@ func (a *archivedBundle) updateTableName(table string) *archivedBundle {
 	a.ID = field.NewString(table, "id")
 	a.Year = field.NewString(table, "year")
 	a.CreatedAt = field.NewTime(table, "created_at")
+	a.Tape = field.NewString(table, "tape")
 
 	a.fillFieldMap()
 
@@ -78,10 +81,11 @@ func (a *archivedBundle) GetFieldByName(fieldName string) (field.OrderExpr, bool
 }
 
 func (a *archivedBundle) fillFieldMap() {
-	a.fieldMap = make(map[string]field.Expr, 3)
+	a.fieldMap = make(map[string]field.Expr, 4)
 	a.fieldMap["id"] = a.ID
 	a.fieldMap["year"] = a.Year
 	a.fieldMap["created_at"] = a.CreatedAt
+	a.fieldMap["tape"] = a.Tape
 }
 
 func (a archivedBundle) clone(db *gorm.DB) archivedBundle {

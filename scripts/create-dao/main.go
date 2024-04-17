@@ -14,7 +14,6 @@ import (
 var allModels = []any{
 	model.ArchivedBundle{},
 	model.ArchivedFile{},
-	model.ArchivedFileIgnore{},
 	model.MirroredGitRepo{},
 	model.PhotoFile{},
 }
