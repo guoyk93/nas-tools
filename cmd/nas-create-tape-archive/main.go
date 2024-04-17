@@ -115,7 +115,7 @@ func main() {
 				db.ArchivedFile.Bundle.Eq(bundle.ID),
 			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
 				for _, record := range batch {
-					names = append(names, record.Name)
+					names = append(names, filepath.Join(record.Year, record.Bundle, record.Name))
 				}
 				return
 			}))
