@@ -110,12 +110,12 @@ func main() {
 		f := rg.Must(os.OpenFile(fileList, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644))
 		defer f.Close()
 
-		for _, bundle := range candidates {
+		for _, candidate := range candidates {
 			var names []string
 			var batch []*model.ArchivedFile
 
 			rg.Must0(db.ArchivedFile.Where(
-				db.ArchivedFile.Bundle.Eq(bundle.ID),
+				db.ArchivedFile.Bundle.Eq(candidate.ID),
 			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
 				for _, record := range batch {
 					names = append(names, filepath.Join(record.Year, record.Bundle, record.Name))
@@ -174,5 +174,9 @@ func main() {
 		cmd.Stderr = os.Stderr
 		cmd.Dir = dirTape
 		rg.Must0(cmd.Run())
+	}
+
+	for _, candidate := range candidates {
+		rg.Must(db.ArchivedBundle.Where(db.ArchivedBundle.ID.Eq(candidate.ID)).UpdateSimple(db.ArchivedBundle.Tape.Value(optTape)))
 	}
 }
