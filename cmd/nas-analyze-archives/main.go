@@ -66,7 +66,7 @@ func checkYearEntryDir(fails *[]string, nameYear string, nameBundle string) {
 	if doCreate {
 		rg.Must0(rec.Save())
 	} else {
-		if rec.CountNotChecked() != 0 {
+		if rec.CountChecking() != 0 {
 			err = errors.New("missing files: " + strings.Join(rec.SampleNotChecked(), ", "))
 		}
 	}

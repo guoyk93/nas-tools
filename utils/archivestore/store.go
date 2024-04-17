@@ -106,27 +106,50 @@ type Item struct {
 }
 
 type Store struct {
-	db         *dao.Query
-	items      []Item
-	data       map[string]Item
-	notChecked map[string]struct{}
-	year       string
-	bundle     string
+	db       *dao.Query
+	items    []Item
+	data     map[string]Item
+	checking map[string]struct{}
+	year     string
+	bundle   string
+
+	modeWrite *bool
 }
 
 func New(db *dao.Query, year, bundle string) (store *Store, err error) {
 	store = &Store{
-		db:         db,
-		data:       map[string]Item{},
-		notChecked: map[string]struct{}{},
-		year:       year,
-		bundle:     bundle,
+		db:       db,
+		data:     map[string]Item{},
+		checking: map[string]struct{}{},
+		year:     year,
+		bundle:   bundle,
 	}
 	return
 }
 
+func (st *Store) mustCheckMode() {
+	if st.modeWrite == nil {
+		st.modeWrite = utils.Ptr(false)
+	} else {
+		if *st.modeWrite {
+			panic("unexpected write mode")
+		}
+	}
+}
+
+func (st *Store) mustWriteMode() {
+	if st.modeWrite == nil {
+		st.modeWrite = utils.Ptr(true)
+	} else {
+		if !*st.modeWrite {
+			panic("unexpected check mode")
+		}
+	}
+}
+
 func (st *Store) SampleNotChecked() (out []string) {
-	for name := range st.notChecked {
+	st.mustCheckMode()
+	for name := range st.checking {
 		if len(out) >= 5 {
 			break
 		}
@@ -142,11 +165,13 @@ func (st *Store) CountDB() (out int64, err error) {
 	).Count()
 }
 
-func (st *Store) CountNotChecked() int {
-	return len(st.notChecked)
+func (st *Store) CountChecking() int {
+	st.mustCheckMode()
+	return len(st.checking)
 }
 
 func (st *Store) Add(dirBundle string, name string, sym bool) (err error) {
+	st.mustWriteMode()
 	var (
 		checksum string
 		size     int64
@@ -168,11 +193,12 @@ func (st *Store) Add(dirBundle string, name string, sym bool) (err error) {
 
 	st.items = append(st.items, item)
 	st.data[item.Name] = item
-	st.notChecked[item.Name] = struct{}{}
+	st.checking[item.Name] = struct{}{}
 	return
 }
 
 func (st *Store) Check(dirBundle string, name string, sym bool) (err error) {
+	st.mustCheckMode()
 	if _, ok := st.data[name]; !ok {
 		err = errors.New("file not found in checksum: " + name)
 		return
@@ -201,18 +227,12 @@ func (st *Store) Check(dirBundle string, name string, sym bool) (err error) {
 		log.Printf("checksum for: %s, sym: %v, checksum: %s", name, sym, checksum)
 	}
 
-	delete(st.notChecked, name)
-
-	for i, item := range st.items {
-		if item.Name == name {
-			st.items = append(st.items[:i], st.items[i+1:]...)
-			break
-		}
-	}
+	delete(st.checking, name)
 	return
 }
 
 func (st *Store) Load() (err error) {
+	st.mustCheckMode()
 	var records []*model.ArchivedFile
 
 	if err = st.db.ArchivedFile.Where(
@@ -230,8 +250,8 @@ func (st *Store) Load() (err error) {
 				Size:    *record.Size,
 			}
 			st.data[record.Name] = item
-			st.notChecked[record.Name] = struct{}{}
 			st.items = append(st.items, item)
+			st.checking[record.Name] = struct{}{}
 		}
 		return nil
 	}); err != nil {
@@ -242,6 +262,7 @@ func (st *Store) Load() (err error) {
 }
 
 func (st *Store) Save() error {
+	st.mustWriteMode()
 	return st.db.Transaction(func(db *dao.Query) error {
 		for _, item := range st.items {
 			if err := db.ArchivedFile.Create(&model.ArchivedFile{
