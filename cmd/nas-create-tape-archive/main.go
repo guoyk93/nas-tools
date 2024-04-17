@@ -120,11 +120,10 @@ func main() {
 				db.ArchivedFile.Bundle.Eq(candidate.ID),
 			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
 				for _, record := range batch {
-					name := filepath.Join(record.Year, record.Bundle, record.Name)
-					if archivestore.ShouldIgnoreFullPath(name) {
+					if archivestore.ShouldIgnoreFullPath(record.Name) {
 						continue
 					}
-					names = append(names)
+					names = append(names, filepath.Join(record.Year, record.Bundle, record.Name))
 				}
 				return
 			}))
