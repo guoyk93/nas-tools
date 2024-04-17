@@ -70,7 +70,7 @@ func main() {
 			).Select(
 				db.ArchivedFile.Bundle,
 				db.ArchivedFile.Size.Sum().As("size"),
-			).Group(db.ArchivedFile.Bundle).First())
+			).Group(db.ArchivedFile.Bundle).Take())
 
 			totalSize += *record.Size
 
