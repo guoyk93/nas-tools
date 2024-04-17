@@ -20,10 +20,12 @@ import (
 )
 
 const (
-	dirArchives = "/volume1/archives"
-	dirTapeRoot = "/volume1/tape"
+	dirSource     = "/volume1/archives"
+	dirTargetRoot = "/volume1/tape"
 
 	sizeThreshold = 1400 * 1000 * 1000 * 1000
+
+	fileIndex = "00-INDEX.txt"
 )
 
 var (
@@ -102,18 +104,19 @@ func main() {
 	}
 
 	// create workspace
-	dirTape := filepath.Join(dirTapeRoot, optTape)
-	rg.Must0(os.MkdirAll(dirTape, 0755))
+	dirTarget := filepath.Join(dirTargetRoot, optTape)
+	rg.Must0(os.MkdirAll(dirTarget, 0755))
 
-	// create list
+	// create list file
 	func(fileList string) {
 		f := rg.Must(os.OpenFile(fileList, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644))
 		defer f.Close()
 
 		for _, candidate := range candidates {
 			var names []string
-			var batch []*model.ArchivedFile
 
+			// build names
+			var batch []*model.ArchivedFile
 			rg.Must0(db.ArchivedFile.Where(
 				db.ArchivedFile.Bundle.Eq(candidate.ID),
 			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
@@ -123,57 +126,42 @@ func main() {
 				return
 			}))
 
+			// sort names
 			sort.Strings(names)
 
+			// write names
 			for _, name := range names {
 				rg.Must(f.Write([]byte(name + "\r\n")))
 			}
 		}
-	}(filepath.Join(dirTape, "LIST.txt"))
+	}(filepath.Join(dirTarget, fileIndex))
 
-	// create tar
-	{
-		args := []string{
-			"tar",
-			"--record-size", "1m",
-			"-cvf", "archive.tar",
-			"--owner", "yanke:1000",
-			"--group", "yanke:1000",
-			"LIST.txt",
-		}
-		log.Println(strings.Join(args, " "))
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Dir = dirTape
-		rg.Must0(cmd.Run())
-	}
-
-	// append tape
+	// create archives
 	for _, candidate := range candidates {
-		args := []string{
-			"tar",
-			"--record-size", "1m",
-			"-rvf", "archive.tar",
-			"--owner", "yanke:1000",
-			"--group", "yanke:1000",
+		// build args
+		args := []string{"7z", "a", "-mx=0"}
+		for ex := range archivestore.Ignores {
+			args = append(args, "-xr!"+ex)
 		}
-		for name := range archivestore.Ignores {
-			args = append(args, "--exclude", name)
+		for _, ex := range archivestore.IgnorePrefixes {
+			args = append(args, "-xr!"+ex+"*")
 		}
-		for _, name := range archivestore.IgnorePrefixes {
-			args = append(args, "--exclude", name+"*")
-		}
-		args = append(args, "-C", dirArchives, filepath.Join(candidate.Year, candidate.ID))
+		args = append(
+			args,
+			filepath.Join(dirTarget, candidate.ID+".7z"),
+			filepath.Join(candidate.Year, candidate.ID),
+		)
 
+		// run command
 		log.Println(strings.Join(args, " "))
-
 		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		cmd.Dir = dirTape
+		cmd.Dir = dirSource
 		rg.Must0(cmd.Run())
 
+		// update bundle set tape
 		rg.Must(db.ArchivedBundle.Where(db.ArchivedBundle.ID.Eq(candidate.ID)).UpdateSimple(db.ArchivedBundle.Tape.Value(optTape)))
 	}
+
 }
