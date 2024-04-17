@@ -136,7 +136,7 @@ func main() {
 				rg.Must(f.Write([]byte(name + "\r\n")))
 			}
 		}
-	}(filepath.Join(dirTarget, "00-INDEX.txt"))
+	}(filepath.Join(dirTarget, "__INDEX.txt"))
 
 	// create archives
 	for _, candidate := range candidates {
