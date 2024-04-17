@@ -6,14 +6,17 @@ import (
 	"github.com/yankeguo/nas-tools/model"
 	"github.com/yankeguo/nas-tools/model/dao"
 	"github.com/yankeguo/nas-tools/utils"
+	"github.com/yankeguo/nas-tools/utils/archivestore"
 	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 const (
@@ -130,14 +133,43 @@ func main() {
 
 	// create tar
 	{
-		cmd := exec.Command(
+		args := []string{
 			"tar",
 			"--record-size", "1m",
 			"-cvf", "archive.tar",
 			"--owner", "yanke:1000",
 			"--group", "yanke:1000",
 			"LIST.txt",
-		)
+		}
+		log.Println(strings.Join(args, " "))
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Dir = dirTape
+		rg.Must0(cmd.Run())
+	}
+
+	// append tape
+	{
+		args := []string{
+			"tar",
+			"--record-size", "1m",
+			"-rvf", "archive.tar",
+			"--owner", "yanke:1000",
+			"--group", "yanke:1000",
+		}
+		for name := range archivestore.Ignores {
+			args = append(args, "--exclude", name)
+		}
+		for _, name := range archivestore.IgnorePrefixes {
+			args = append(args, "--exclude", name+"*")
+		}
+		args = append(args, "-C", dirArchives)
+		for _, candidate := range candidates {
+			args = append(args, filepath.Join(candidate.Year, candidate.ID))
+		}
+		log.Println(strings.Join(args, " "))
+		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Dir = dirTape
