@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"github.com/yankeguo/nas-tools/model"
@@ -24,8 +25,6 @@ const (
 	dirTargetRoot = "/volume1/tape"
 
 	sizeThreshold = 1400 * 1000 * 1000 * 1000
-
-	fileIndex = "00-INDEX.txt"
 )
 
 var (
@@ -121,7 +120,11 @@ func main() {
 				db.ArchivedFile.Bundle.Eq(candidate.ID),
 			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
 				for _, record := range batch {
-					names = append(names, filepath.Join(record.Year, record.Bundle, record.Name))
+					name := filepath.Join(record.Year, record.Bundle, record.Name)
+					if archivestore.ShouldIgnoreFullPath(name) {
+						continue
+					}
+					names = append(names)
 				}
 				return
 			}))
@@ -134,31 +137,56 @@ func main() {
 				rg.Must(f.Write([]byte(name + "\r\n")))
 			}
 		}
-	}(filepath.Join(dirTarget, fileIndex))
+	}(filepath.Join(dirTarget, "00-INDEX.txt"))
 
 	// create archives
 	for _, candidate := range candidates {
-		// build args
-		args := []string{"7z", "a", "-mx=0"}
-		for ex := range archivestore.Ignores {
-			args = append(args, "-xr!"+ex)
-		}
-		for _, ex := range archivestore.IgnorePrefixes {
-			args = append(args, "-xr!"+ex+"*")
-		}
-		args = append(
-			args,
-			filepath.Join(dirTarget, candidate.ID+".7z"),
-			filepath.Join(candidate.Year, candidate.ID),
+
+		var (
+			fileArchive = filepath.Join(dirTarget, candidate.ID+".7z")
+			fileIndex   = filepath.Join(dirTarget, candidate.ID+".7z"+".txt")
 		)
 
-		// run command
-		log.Println(strings.Join(args, " "))
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Dir = dirSource
-		rg.Must0(cmd.Run())
+		_ = os.RemoveAll(fileArchive)
+		_ = os.RemoveAll(fileIndex)
+
+		// create 7z archive
+		{
+			// build args
+			args := []string{"7z", "a", "-mx=0"}
+			for ex := range archivestore.Ignores {
+				args = append(args, "-xr!"+ex)
+			}
+			for _, ex := range archivestore.IgnorePrefixes {
+				args = append(args, "-xr!"+ex+"*")
+			}
+			args = append(
+				args,
+				fileArchive,
+				filepath.Join(candidate.Year, candidate.ID),
+			)
+
+			// run command
+			log.Println(strings.Join(args, " "))
+			cmd := exec.Command(args[0], args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Dir = dirSource
+			rg.Must0(cmd.Run())
+		}
+
+		// create archive index
+		{
+			// run command
+			buf := &bytes.Buffer{}
+			cmd := exec.Command("7z", "l", fileArchive)
+			cmd.Stdout = buf
+			cmd.Stderr = os.Stderr
+			rg.Must0(cmd.Run())
+
+			// save output
+			rg.Must0(os.WriteFile(fileIndex, buf.Bytes(), 0644))
+		}
 
 		// update bundle set tape
 		rg.Must(db.ArchivedBundle.Where(db.ArchivedBundle.ID.Eq(candidate.ID)).UpdateSimple(db.ArchivedBundle.Tape.Value(optTape)))
