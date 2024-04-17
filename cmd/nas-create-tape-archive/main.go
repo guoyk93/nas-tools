@@ -60,16 +60,16 @@ func main() {
 	// select candidates
 	{
 		bundles := rg.Must(db.ArchivedBundle.Where(
-			dao.ArchivedBundle.Tape.Eq(""),
-		).Order(dao.ArchivedBundle.ID.Asc()).Find())
+			db.ArchivedBundle.Tape.Eq(""),
+		).Order(db.ArchivedBundle.ID.Asc()).Find())
 
 		var totalSize int64
 		for _, bundle := range bundles {
 			record := rg.Must(db.ArchivedFile.Where(
-				dao.ArchivedFile.Bundle.Eq(bundle.ID),
+				db.ArchivedFile.Bundle.Eq(bundle.ID),
 			).Select(
-				dao.ArchivedFile.Bundle,
-				dao.ArchivedFile.Size.Sum().As("size"),
+				db.ArchivedFile.Bundle,
+				db.ArchivedFile.Size.Sum().As("size"),
 			).First())
 
 			totalSize += *record.Size
@@ -96,7 +96,7 @@ func main() {
 			var batch []*model.ArchivedFile
 
 			rg.Must0(db.ArchivedFile.Where(
-				dao.ArchivedFile.Bundle.Eq(bundle.ID),
+				db.ArchivedFile.Bundle.Eq(bundle.ID),
 			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
 				for _, record := range batch {
 					names = append(names, record.Name)
