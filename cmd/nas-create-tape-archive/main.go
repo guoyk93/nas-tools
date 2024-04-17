@@ -150,7 +150,7 @@ func main() {
 	}
 
 	// append tape
-	{
+	for _, candidate := range candidates {
 		args := []string{
 			"tar",
 			"--record-size", "1m",
@@ -164,19 +164,16 @@ func main() {
 		for _, name := range archivestore.IgnorePrefixes {
 			args = append(args, "--exclude", name+"*")
 		}
-		args = append(args, "-C", dirArchives)
-		for _, candidate := range candidates {
-			args = append(args, filepath.Join(candidate.Year, candidate.ID))
-		}
+		args = append(args, "-C", dirArchives, filepath.Join(candidate.Year, candidate.ID))
+
 		log.Println(strings.Join(args, " "))
+
 		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Dir = dirTape
 		rg.Must0(cmd.Run())
-	}
 
-	for _, candidate := range candidates {
 		rg.Must(db.ArchivedBundle.Where(db.ArchivedBundle.ID.Eq(candidate.ID)).UpdateSimple(db.ArchivedBundle.Tape.Value(optTape)))
 	}
 }
