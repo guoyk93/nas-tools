@@ -34,18 +34,14 @@ var (
 	}
 )
 
-func ShouldIgnoreFullPath(path string) bool {
-	for {
-		var name string
-		path, name = filepath.Split(path)
-
-		if ShouldIgnore(name) {
-			return true
-		}
-
-		if path == "" {
-			return false
-		}
+func ShouldIgnoreFullPath(fullPath string) bool {
+	if fullPath == "" || fullPath == "." || fullPath == ".." || fullPath == "/" {
+		return false
+	}
+	if dir, name := filepath.Split(fullPath); ShouldIgnore(name) {
+		return true
+	} else {
+		return ShouldIgnoreFullPath(filepath.Clean(dir))
 	}
 }
 
