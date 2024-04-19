@@ -116,10 +116,6 @@ func main() {
 				}
 			}
 
-			if *record.Size == 0 {
-				rg.Must0(errors.New("bundle size is 0"))
-			}
-
 			totalSize += *record.Size
 
 			if totalSize > sizeThreshold {
