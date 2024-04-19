@@ -33,6 +33,29 @@ var (
 	db *dao.Query
 )
 
+func calculateDirectorySize(dir string) (size int64, err error) {
+	var entries []os.DirEntry
+	if entries, err = os.ReadDir(dir); err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			var subSize int64
+			if subSize, err = calculateDirectorySize(filepath.Join(dir, entry.Name())); err != nil {
+				return
+			}
+			size += subSize
+		} else {
+			var info os.FileInfo
+			if info, err = entry.Info(); err != nil {
+				return
+			}
+			size += info.Size()
+		}
+	}
+	return
+}
+
 func main() {
 	var err error
 	defer utils.Exit(&err)
@@ -58,6 +81,10 @@ func main() {
 		db = dao.Use(client)
 	}
 
+	// create workspace
+	dirTarget := filepath.Join(dirTargetRoot, optTape)
+	rg.Must0(os.MkdirAll(dirTarget, 0755))
+
 	var (
 		candidates []*model.ArchivedBundle
 	)
@@ -68,7 +95,10 @@ func main() {
 			db.ArchivedBundle.Tape.Eq(""),
 		).Order(db.ArchivedBundle.ID.Asc()).Find())
 
-		var totalSize int64
+		// initial size from directory
+		totalSize := rg.Must(calculateDirectorySize(dirTarget))
+		log.Println("initial total size", totalSize)
+
 		for _, bundle := range bundles {
 			var record *model.ArchivedFile
 
@@ -101,10 +131,6 @@ func main() {
 			candidates = append(candidates, bundle)
 		}
 	}
-
-	// create workspace
-	dirTarget := filepath.Join(dirTargetRoot, optTape)
-	rg.Must0(os.MkdirAll(dirTarget, 0755))
 
 	// create list file
 	func(fileList string) {
