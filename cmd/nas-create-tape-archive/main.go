@@ -10,13 +10,11 @@ import (
 	"github.com/yankeguo/nas-tools/utils/archivestore"
 	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
-	"gorm.io/gen"
 	"gorm.io/gorm"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -24,7 +22,7 @@ const (
 	dirSource     = "/volume1/archives"
 	dirTargetRoot = "/volume1/tape"
 
-	sizeThreshold = 1400 * 1000 * 1000 * 1000
+	sizeThreshold = 1200 * 1000 * 1000 * 1000
 )
 
 var (
@@ -131,38 +129,6 @@ func main() {
 			candidates = append(candidates, bundle)
 		}
 	}
-
-	// create list file
-	func(fileList string) {
-		f := rg.Must(os.OpenFile(fileList, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644))
-		defer f.Close()
-
-		for _, candidate := range candidates {
-			var names []string
-
-			// build names
-			var batch []*model.ArchivedFile
-			rg.Must0(db.ArchivedFile.Where(
-				db.ArchivedFile.Bundle.Eq(candidate.ID),
-			).FindInBatches(&batch, 10000, func(tx gen.Dao, b int) (err error) {
-				for _, record := range batch {
-					if archivestore.ShouldIgnoreFullPath(record.Name) {
-						continue
-					}
-					names = append(names, filepath.Join(record.Year, record.Bundle, record.Name))
-				}
-				return
-			}))
-
-			// sort names
-			sort.Strings(names)
-
-			// write names
-			for _, name := range names {
-				rg.Must(f.Write([]byte(name + "\r\n")))
-			}
-		}
-	}(filepath.Join(dirTarget, "__INDEX.txt"))
 
 	// create archives
 	for _, candidate := range candidates {
