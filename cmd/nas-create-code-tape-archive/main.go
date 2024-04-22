@@ -11,7 +11,7 @@ import (
 
 var (
 	dirSrc = "/volume1/mirrors/Git"
-	dirDst = "/volume1/tape/TAPE-REPO"
+	dirDst = "/volume1/tape/TAPE-CODE"
 )
 
 func isGitBareRepository(dir string, entries []os.DirEntry) bool {
