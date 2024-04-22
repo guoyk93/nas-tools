@@ -64,6 +64,8 @@ func doArchive(dir string) (err error) {
 
 	file := filepath.Join(dirDst, rel, base) + ".7z"
 
+	rg.Must0(os.RemoveAll(file))
+
 	log.Println("creating:", file)
 
 	cmd := exec.Command(
