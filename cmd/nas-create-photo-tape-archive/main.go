@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -29,19 +31,43 @@ func main() {
 
 	rg.Must0(os.MkdirAll(dirDst, 0755))
 
-	args := []string{
-		"7z",
-		"a",
-		"-v100g",
-		"-mx=0",
-		"-mhe=on",
-		"-p" + archivePassword,
-		filepath.Join(dirDst, "TAPE-PHOTO.7z"),
+	fileDst := filepath.Join(dirDst, "TAPE-PHOTO.7z")
+	fileIdx := filepath.Join(dirDst, "TAPE-PHOTO.7z.txt")
+
+	{
+		args := []string{
+			"7z",
+			"a",
+			"-v100g",
+			"-mx=0",
+			"-mhe=on",
+			"-p" + archivePassword,
+			fileDst,
+		}
+
+		for _, user := range os.Args[1:] {
+			args = append(args, filepath.Join(user, "Photos"))
+		}
+
+		// run command
+		log.Println(strings.Join(args, " "))
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Dir = dirHomes
+		rg.Must0(cmd.Run())
 	}
 
-	for _, user := range os.Args[1:] {
-		args = append(args, filepath.Join(user, "Photos"))
-	}
+	// create archive index
+	{
+		// run command
+		buf := &bytes.Buffer{}
+		cmd := exec.Command("7z", "l", "-p"+archivePassword, fileDst+".001")
+		cmd.Stdout = buf
+		cmd.Stderr = os.Stderr
+		rg.Must0(cmd.Run())
 
-	log.Println(strings.Join(args, " "))
+		// save output
+		rg.Must0(os.WriteFile(fileIdx, buf.Bytes(), 0644))
+	}
 }
