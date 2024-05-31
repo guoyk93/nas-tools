@@ -60,6 +60,12 @@ func main() {
 	defer utils.Exit(&err)
 	defer rg.Guard(&err)
 
+	archivePassword := strings.TrimSpace(os.Getenv("ARCHIVE_PASSWORD"))
+	if archivePassword == "" {
+		err = errors.New("ARCHIVE_PASSWORD is required")
+		return
+	}
+
 	var (
 		optTape string
 	)
@@ -67,7 +73,7 @@ func main() {
 	flag.Parse()
 
 	if optTape == "" {
-		panic("tape name is required")
+		err = errors.New("tape name is required")
 		return
 	}
 
@@ -141,7 +147,7 @@ func main() {
 		// create 7z archive
 		{
 			// build args
-			args := []string{"7z", "a", "-v100g", "-mx=0"}
+			args := []string{"7z", "a", "-v100g", "-mx=0", "-p" + archivePassword}
 			for ex := range archivestore.Ignores {
 				args = append(args, "-xr!"+ex)
 			}
@@ -167,7 +173,7 @@ func main() {
 		{
 			// run command
 			buf := &bytes.Buffer{}
-			cmd := exec.Command("7z", "l", fileArchive+".001")
+			cmd := exec.Command("7z", "l", "-p"+archivePassword, fileArchive+".001")
 			cmd.Stdout = buf
 			cmd.Stderr = os.Stderr
 			rg.Must0(cmd.Run())
