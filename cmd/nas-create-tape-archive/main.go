@@ -147,7 +147,14 @@ func main() {
 		// create 7z archive
 		{
 			// build args
-			args := []string{"7z", "a", "-v100g", "-mx=0", "-mhe=on", "-p" + archivePassword}
+			args := []string{
+				"7z",
+				"a",
+				"-v100g",
+				"-mx=0",
+				"-mhe=on",
+				"-p" + archivePassword,
+			}
 			for ex := range archivestore.Ignores {
 				args = append(args, "-xr!"+ex)
 			}
