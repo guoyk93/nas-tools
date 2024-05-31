@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	"github.com/yankeguo/nas-tools/model"
 	"github.com/yankeguo/nas-tools/model/dao"
 	"github.com/yankeguo/nas-tools/utils"
@@ -11,11 +17,6 @@ import (
 	"github.com/yankeguo/rg"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -140,7 +141,7 @@ func main() {
 		// create 7z archive
 		{
 			// build args
-			args := []string{"7z", "a", "-mx=0"}
+			args := []string{"7z", "a", "-v100g", "-mx=0"}
 			for ex := range archivestore.Ignores {
 				args = append(args, "-xr!"+ex)
 			}
@@ -166,7 +167,7 @@ func main() {
 		{
 			// run command
 			buf := &bytes.Buffer{}
-			cmd := exec.Command("7z", "l", fileArchive)
+			cmd := exec.Command("7z", "l", fileArchive+".001")
 			cmd.Stdout = buf
 			cmd.Stderr = os.Stderr
 			rg.Must0(cmd.Run())
