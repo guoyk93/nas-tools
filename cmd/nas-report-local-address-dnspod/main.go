@@ -63,6 +63,7 @@ func main() {
 		request := dnspod.NewModifyRecordRequest()
 
 		request.Domain = common.StringPtr(optDomain)
+		request.SubDomain = common.StringPtr(optSubdomain)
 		request.RecordType = common.StringPtr("A")
 		request.RecordLine = common.StringPtr(recordLine)
 		request.Value = common.StringPtr(optAddress)
