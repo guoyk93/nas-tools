@@ -37,8 +37,7 @@ func main() {
 	), "", clientProfile))
 
 	var (
-		recordID   uint64
-		recordLine string
+		record *dnspod.RecordListItem
 	)
 
 	{
@@ -54,14 +53,11 @@ func main() {
 			return
 		}
 
-		record := response.Response.RecordList[0]
+		record = response.Response.RecordList[0]
 
 		if *record.Value == optAddress {
 			return
 		}
-
-		recordID = *record.RecordId
-		recordLine = *record.Line
 	}
 
 	{
@@ -71,9 +67,10 @@ func main() {
 		request.Domain = common.StringPtr(optDomain)
 		request.SubDomain = common.StringPtr(optSubdomain)
 		request.RecordType = common.StringPtr("A")
-		request.RecordLine = common.StringPtr(recordLine)
+		request.RecordLine = common.StringPtr(*record.Line)
 		request.Value = common.StringPtr(optAddress)
-		request.RecordId = common.Uint64Ptr(recordID)
+		request.RecordId = common.Uint64Ptr(*record.RecordId)
+		request.TTL = common.Uint64Ptr(*record.TTL)
 
 		_ = rg.Must(client.ModifyRecord(request))
 	}
