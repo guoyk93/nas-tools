@@ -54,8 +54,14 @@ func main() {
 			return
 		}
 
-		recordID = *response.Response.RecordList[0].RecordId
-		recordLine = *response.Response.RecordList[0].Line
+		record := response.Response.RecordList[0]
+
+		if *record.Value == optAddress {
+			return
+		}
+
+		recordID = *record.RecordId
+		recordLine = *record.Line
 	}
 
 	{
